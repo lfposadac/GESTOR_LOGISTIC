@@ -1,86 +1,139 @@
 package usecase
 
 import (
-	"context"
-	"errors"
-	"io"
+	"fmt"
+	"math/rand"
+	"strconv"
+	"time"
+
+	"gestor_logistic/internal/core/domain"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
-// Domain entity
-type Gestor struct {
-	ID   string
-	Name string
-	Meta map[string]interface{}
-}
+const (
+	JwtSecretKey   = "CLAVE_SECRETA_INTEGRACOMEX_2025"
+	CodigoDuracion = 24 * time.Hour
+)
 
-// Repository defines persistence operations.
-// Implementations (e.g. SQL, in-memory, file) must satisfy this interface.
-// This enables Dependency Inversion: the use case depends on an abstraction.
 type Repository interface {
-	Save(ctx context.Context, g *Gestor) error
-	GetByID(ctx context.Context, id string) (*Gestor, error)
-	List(ctx context.Context) ([]*Gestor, error)
+	FindUserByEmail(email string) (domain.Usuario, error)
+	UpdateUserOTP(id int, code string, expires time.Time) error
+	SaveCliente(c domain.Cliente, docs []domain.DocumentoSoporte) (int, error)
+	GetClientesPorVencer(d time.Time) ([]domain.DocumentoSoporte, error)
+	UpdateAlertaNotificada(docID uint64) error
+	CreateDO(do domain.DocumentoOperativo) (int, error)
+	SaveOperacion(op domain.Item) error
+	SaveFotoMetadata(foto domain.FotoItem) error
 }
 
-// Parser defines how to parse incoming data into domain entities.
-// New file formats can be supported by adding new Parser implementations
-// without changing GestorService (Open/Closed principle).
 type Parser interface {
-	Parse(r io.Reader) ([]*Gestor, error)
+	Parse(filePath string) ([]domain.ItemCSV, error)
 }
 
-// Common errors
-var (
-	ErrNotFound = errors.New("gestor not found")
-)
-
-// GestorService contains application/business logic and depends only on
-// the Repository and Parser abstractions (inverted dependencies).
 type GestorService struct {
-	repo   Repository
-	parser Parser
+	Repo           Repository
+	Parser         Parser
+	processedCount int
 }
 
-// NewGestorService constructs the service with injected abstractions.
-func NewGestorService(repo Repository, parser Parser) *GestorService {
-	return &GestorService{repo: repo, parser: parser}
+func NewGestorService(r Repository, p Parser) *GestorService {
+	return &GestorService{Repo: r, Parser: p}
 }
 
-// ImportFromReader parses data from r and persists each Gestor using the Repository.
-// This method demonstrates Open/Closed: to support another format, provide another Parser.
-func (s *GestorService) ImportFromReader(ctx context.Context, r io.Reader) ([]*Gestor, error) {
-	gestores, err := s.parser.Parse(r)
+func (s *GestorService) GetProcessedCount() int {
+	return s.processedCount
+}
+
+// --- AUTH ---
+func (s *GestorService) GenerateAndSendOTP(email string) error {
+	user, err := s.Repo.FindUserByEmail(email)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("usuario no encontrado")
+	}
+	code := fmt.Sprintf("%06d", rand.Intn(999999))
+	expiresAt := time.Now().Add(CodigoDuracion)
+	if err := s.Repo.UpdateUserOTP(user.ID, code, expiresAt); err != nil {
+		return err
+	}
+	fmt.Printf("\n📨 [EMAIL] Para: %s | Código: %s | Válido 24h\n", email, code)
+	return nil
+}
+
+func (s *GestorService) AuthenticateWithOTP(email, otpCode string) (string, error) {
+	user, err := s.Repo.FindUserByEmail(email)
+	if err != nil {
+		return "", fmt.Errorf("usuario no encontrado")
+	}
+	if user.CodigoTemporal != otpCode {
+		return "", fmt.Errorf("código incorrecto")
+	}
+	if time.Now().After(user.CodigoExpiraA) {
+		return "", fmt.Errorf("código expirado")
+	}
+	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub":   user.ID,
+		"email": user.Email,
+		"rol":   user.Rol,
+		"exp":   time.Now().Add(CodigoDuracion).Unix(),
+	})
+	return claims.SignedString([]byte(JwtSecretKey))
+}
+
+// --- NEGOCIO ---
+func (s *GestorService) MatricularCliente(c domain.Cliente, docs []domain.DocumentoSoporte) (int, error) {
+	if c.Nit == "" {
+		return 0, fmt.Errorf("NIT obligatorio")
+	}
+	if c.FechaMatricula.IsZero() {
+		c.FechaMatricula = time.Now()
+	}
+	return s.Repo.SaveCliente(c, docs)
+}
+
+func (s *GestorService) ProcessAndSaveCSV(filePath string, doID int) error {
+	s.processedCount = 0
+	rawItems, err := s.Parser.Parse(filePath)
+	if err != nil {
+		return err
 	}
 
-	for _, g := range gestores {
-		if err := s.repo.Save(ctx, g); err != nil {
-			return nil, err
+	for _, raw := range rawItems {
+		item := transformToDomain(raw)
+		item.DoID = uint64(doID)
+		if err := s.Repo.SaveOperacion(item); err != nil {
+			fmt.Printf("⚠️ Error item: %v\n", err)
+			continue
 		}
+		s.processedCount++
 	}
-
-	return gestores, nil
+	return nil
 }
 
-// Create persists a single Gestor.
-func (s *GestorService) Create(ctx context.Context, g *Gestor) error {
-	return s.repo.Save(ctx, g)
+func (s *GestorService) SavePhotoMetadata(doID int, ruta string, itemIDs []int) error {
+	return s.Repo.SaveFotoMetadata(domain.FotoItem{
+		DoID:               uint64(doID),
+		RutaAlmacenamiento: ruta,
+		ItemsAsociados:     itemIDs,
+	})
 }
 
-// Get retrieves a Gestor by ID.
-func (s *GestorService) Get(ctx context.Context, id string) (*Gestor, error) {
-	g, err := s.repo.GetByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if g == nil {
-		return nil, ErrNotFound
-	}
-	return g, nil
-}
+// Transformación ajustada a los campos requeridos
+func transformToDomain(raw domain.ItemCSV) domain.Item {
+	cant, _ := strconv.Atoi(raw.CantDavStr)
+	peso, _ := strconv.ParseFloat(raw.PesoStr, 64)
 
-// List returns all Gestores.
-func (s *GestorService) List(ctx context.Context) ([]*Gestor, error) {
-	return s.repo.List(ctx)
+	return domain.Item{
+		Producto:           raw.Producto,
+		Referencia:         raw.Referencia,
+		Marca:              raw.Marca,
+		Modelo:             raw.Modelo,
+		Serial:             raw.Serial,
+		InfoComplementaria: raw.InfoComplementaria,
+		Descripcion:        raw.Descripcion,
+		Cantidad:           cant,
+		PesoKg:             peso,
+		PaisOrigen:         raw.Pais,
+		Proveedor:          raw.ProveedorNombre,
+	}
 }
