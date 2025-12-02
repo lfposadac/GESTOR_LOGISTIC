@@ -1,42 +1,88 @@
-#root {
-  max-width: 1280px;
+/* src/App.css */
+:root {
+  --primary-blue: #002B5C;
+  --accent-orange: #F58220;
+  --accent-orange-hover: #d96e11;
+  --bg-light: #F4F7F6;
+  --text-dark: #333333;
+  --white: #FFFFFF;
+}
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+}
+
+/* Utilidades */
+.container {
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  padding: 20px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.btn-primary {
+  background-color: var(--accent-orange);
+  color: var(--white);
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.btn-primary:hover {
+  background-color: var(--accent-orange-hover);
 }
 
-.card {
-  padding: 2em;
+.btn-secondary {
+  background-color: transparent;
+  color: var(--primary-blue);
+  border: 2px solid var(--primary-blue);
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.read-the-docs {
-  color: #888;
+.btn-secondary:hover {
+  background-color: var(--primary-blue);
+  color: var(--white);
+}
+
+h1, h2, h3 {
+  color: var(--primary-blue);
+}
+
+/* Header de la aplicación */
+.app-header {
+  background-color: var(--primary-blue);
+  color: var(--white);
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.header-logo {
+  height: 40px;
+  filter: brightness(0) invert(1); /* Hace el logo blanco para el fondo azul */
+}
+
+.logout-btn {
+  background: rgba(255,255,255,0.1);
+  color: var(--white);
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.logout-btn:hover {
+    background: rgba(255,255,255,0.2);
 }
