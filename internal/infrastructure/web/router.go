@@ -1,18 +1,31 @@
 package web
 
 import (
-	"github.com/gin-gonic/gin" // or "github.com/gofiber/fiber/v2" for Fiber
+	"gestor_logistic/internal/handlers/http"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter() *gin.Engine { // Change to *fiber.App if using Fiber
-	router := gin.Default() // or fiber.New() for Fiber
+func SetupRouter(h *http.OperacionHandler) *gin.Engine {
+	r := gin.Default()
+	c := cors.DefaultConfig()
+	c.AllowAllOrigins = true
+	c.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
+	r.Use(cors.New(c))
 
-	// Define your routes here
-	router.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "Welcome to the API!",
-		})
-	})
+	auth := r.Group("/api/auth")
+	{
+		auth.POST("/solicitud-otp", h.HandleSolicitarOTP)
+		auth.POST("/verificar-otp", h.HandleVerificarOTP)
+	}
 
-	return router // Return the router instance
+	api := r.Group("/api")
+	api.Use(http.AuthMiddleware())
+	{
+		api.POST("/clientes/matricula", h.HandleMatricular)
+		api.POST("/do/:do_id/carga-csv", h.HandleCargaCSV)
+		api.POST("/do/:do_id/fotos", h.HandleCargaFotos)
+	}
+	return r
 }

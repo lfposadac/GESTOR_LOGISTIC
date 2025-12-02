@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -12,76 +13,60 @@ import (
 	"gestor_logistic/internal/infrastructure/web"
 	"gestor_logistic/internal/infrastructure/worker"
 
-	"github.com/joho/godotenv" // Opcional: Para cargar variables de entorno desde .env
+	"github.com/joho/godotenv" // Importar librería
 )
 
 func main() {
-	// 1. Cargar variables de entorno (Opcional, pero recomendado para producción)
-	// Si tienes un archivo .env, descomenta la siguiente línea:
-	_ = godotenv.Load()
+	// 1. Cargar variables de entorno desde el archivo .env
+	// Si no encuentra el archivo (ej: en producción), no falla, sigue con las del sistema.
+	if err := godotenv.Load(); err != nil {
+		log.Println("⚠️ No se encontró archivo .env, usando variables de entorno del sistema.")
+	}
 
-	// ---------------------------------------------------------------------
-	// 2. Configuración de Base de Datos
-	// ---------------------------------------------------------------------
-	// NOTA: Cambia estas credenciales por las reales de tu PostgreSQL local o remoto.
+	// 2. Construir la cadena de conexión usando las variables
 	dbUser := getEnv("DB_USER", "postgres")
-	dbPass := getEnv("DB_PASSWORD", "ungSET23")
-	dbName := getEnv("DB_NAME", "gestor_logistic")
+	dbPass := getEnv("DB_PASSWORD", "password") // Fallback por si acaso
 	dbHost := getEnv("DB_HOST", "localhost")
 	dbPort := getEnv("DB_PORT", "5432")
+	dbName := getEnv("DB_NAME", "logistica_db")
 	dbSSL := getEnv("DB_SSL", "disable")
 
-	dbConnectionString := "user=" + dbUser + " password=" + dbPass + " dbname=" + dbName + " host=" + dbHost + " port=" + dbPort + " sslmode=" + dbSSL
+	// Cadena de conexión segura
+	connStr := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=%s",
+		dbUser, dbPass, dbName, dbHost, dbPort, dbSSL)
 
-	log.Println("🔌 Conectando a la base de datos...")
-	db, err := database.NewDBConnection(dbConnectionString)
+	// 3. Conexión a Base de Datos
+	db, err := database.NewDBConnection(connStr)
 	if err != nil {
-		log.Fatalf("❌ Error crítico: No se pudo conectar a la base de datos. %v", err)
+		log.Fatalf("❌ Error conectando a la DB: %v", err)
 	}
 	defer db.Close()
-	log.Println("✅ Conexión a PostgreSQL establecida exitosamente.")
 
-	// ---------------------------------------------------------------------
-	// 3. Inyección de Dependencias (Clean Architecture)
-	// ---------------------------------------------------------------------
-
-	// Capa de Infraestructura (Repositorio y Parser)
+	// 4. Inyección de Dependencias
 	repo := database.NewPostgresRepository(db)
-	csvParser := parser.NewCSVParser()
+	parser := parser.NewCSVParser()
+	service := usecase.NewGestorService(repo, parser)
+	handler := http.NewOperacionHandler(service)
 
-	// Capa de Negocio (Use Case)
-	// Inyectamos el repositorio y el parser al servicio principal
-	gestorService := usecase.NewGestorService(repo, csvParser)
+	// Crear carpetas temporales si no existen
+	_ = os.Mkdir("tmp", 0755)
+	_ = os.Mkdir("uploads", 0755)
 
-	// Capa de Presentación (Handler / Controller)
-	// Inyectamos el servicio al controlador HTTP
-	operacionHandler := http.NewOperacionHandler(gestorService)
+	// 5. Iniciar Worker
+	worker.StartAlerterWorker(repo, 1*time.Hour)
 
-	// ---------------------------------------------------------------------
-	// 4. Inicialización de Workers (Procesos en Segundo Plano)
-	// ---------------------------------------------------------------------
+	// 6. Iniciar Servidor
+	r := web.SetupRouter(handler)
 
-	// Worker de Alertas (Proceso 1): Revisa vencimientos de documentos cada hora
-	log.Println("⏰ Iniciando Worker de Alertas...")
-	go worker.StartAlerterWorker(repo, 1*time.Hour)
+	port := getEnv("PORT", "8080")
+	log.Printf("🚀 Servidor corriendo en http://localhost:%s", port)
 
-	// ---------------------------------------------------------------------
-	// 5. Configuración y Lanzamiento del Servidor Web
-	// ---------------------------------------------------------------------
-
-	// Configurar Router y Rutas (incluyendo Login y Middleware)
-	router := web.SetupRouter(operacionHandler)
-
-	serverPort := getEnv("PORT", "8080")
-	log.Printf("🌐 Servidor Gestor Logístico iniciado en http://localhost:%s", serverPort)
-
-	// Iniciar el servidor (Bloqueante)
-	if err := router.Run(":" + serverPort); err != nil {
-		log.Fatalf("❌ Error al iniciar el servidor: %v", err)
+	if err := r.Run(":" + port); err != nil {
+		log.Fatalf("❌ Error al iniciar servidor: %v", err)
 	}
 }
 
-// getEnv es una función auxiliar para leer variables de entorno con un valor por defecto
+// Función auxiliar: Obtiene una variable de entorno o usa un valor por defecto
 func getEnv(key, fallback string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
