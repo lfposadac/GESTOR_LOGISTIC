@@ -1,92 +1,134 @@
 package http
 
 import (
-	"context"
-	"encoding/json"
-	"io"
-	stdhttp "net/http"
+	"fmt"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+
+	"gestor_logistic/internal/core/domain"
+	"gestor_logistic/internal/core/usecase"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-// OperacionInput representa el payload esperado para crear/ejecutar una operación.
-type OperacionInput struct {
-	ID     string  `json:"id,omitempty"`
-	Nombre string  `json:"nombre"`
-	Monto  float64 `json:"monto"`
-}
-
-// OperacionOutput representa la respuesta del caso de uso.
-type OperacionOutput struct {
-	ID     string `json:"id"`
-	Estado string `json:"estado,omitempty"`
-}
-
-// OperacionUseCase define la interfaz que el handler usa para ejecutar la lógica de negocio.
-// El proyecto debe proporcionar una implementación concreta de esta interfaz.
-type OperacionUseCase interface {
-	Execute(ctx context.Context, input OperacionInput) (OperacionOutput, error)
-}
-
-// OperacionHandler maneja solicitudes HTTP relacionadas con "operacion".
 type OperacionHandler struct {
-	uc OperacionUseCase
+	Service *usecase.GestorService
 }
 
-// NewOperacionHandler crea un handler con la dependencia del Use Case.
-func NewOperacionHandler(uc OperacionUseCase) *OperacionHandler {
-	return &OperacionHandler{uc: uc}
+func NewOperacionHandler(s *usecase.GestorService) *OperacionHandler {
+	return &OperacionHandler{Service: s}
 }
 
-// Create maneja POST /operacion
-// - decodifica JSON del body
-// - valida campos mínimos
-// - llama al Use Case
-// - responde JSON con el resultado o error apropiado
-func (h *OperacionHandler) Create(w stdhttp.ResponseWriter, r *stdhttp.Request) {
-	if r.Method != stdhttp.MethodPost {
-		writeError(w, stdhttp.StatusMethodNotAllowed, "método no permitido")
+// --- AUTH ---
+
+func (h *OperacionHandler) HandleSolicitarOTP(c *gin.Context) {
+	var req domain.OTPRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// Antes: 400 -> Ahora: http.StatusBadRequest
+		c.JSON(http.StatusBadRequest, gin.H{"error": "JSON inválido"})
 		return
 	}
+	if err := h.Service.GenerateAndSendOTP(req.Email); err != nil {
+		// Antes: 500 -> Ahora: http.StatusInternalServerError
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	// Antes: 200 -> Ahora: http.StatusOK
+	c.JSON(http.StatusOK, gin.H{"message": "Código OTP enviado"})
+}
 
-	body, err := io.ReadAll(r.Body)
+func (h *OperacionHandler) HandleVerificarOTP(c *gin.Context) {
+	var req domain.LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "JSON inválido"})
+		return
+	}
+	token, err := h.Service.AuthenticateWithOTP(req.Email, req.CodigoOTP)
 	if err != nil {
-		writeError(w, stdhttp.StatusBadRequest, "no se pudo leer el cuerpo de la solicitud")
+		// Antes: 401 -> Ahora: http.StatusUnauthorized
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
-	defer r.Body.Close()
+	c.JSON(http.StatusOK, gin.H{"token": token})
+}
 
-	var in OperacionInput
-	if err := json.Unmarshal(body, &in); err != nil {
-		writeError(w, stdhttp.StatusBadRequest, "payload JSON inválido")
+// --- MIDDLEWARE ---
+
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token requerido"})
+			return
+		}
+		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+
+		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+			return []byte(usecase.JwtSecretKey), nil
+		})
+
+		if err != nil || !token.Valid {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token inválido"})
+			return
+		}
+		c.Next()
+	}
+}
+
+// --- NEGOCIO ---
+
+func (h *OperacionHandler) HandleMatricular(c *gin.Context) {
+	var req domain.MatriculaRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	// validación mínima
-	if in.Nombre == "" {
-		writeError(w, stdhttp.StatusBadRequest, "campo 'nombre' es obligatorio")
-		return
-	}
-
-	out, err := h.uc.Execute(r.Context(), in)
+	id, err := h.Service.MatricularCliente(req.Cliente, req.Documentos)
 	if err != nil {
-		// Aquí puede mapear errores de dominio a códigos HTTP más específicos.
-		writeError(w, stdhttp.StatusInternalServerError, err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	// Antes: 201 -> Ahora: http.StatusCreated
+	c.JSON(http.StatusCreated, gin.H{"cliente_id": id})
+}
+
+func (h *OperacionHandler) HandleCargaCSV(c *gin.Context) {
+	doID, _ := strconv.Atoi(c.Param("do_id"))
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Archivo requerido"})
 		return
 	}
 
-	writeJSON(w, stdhttp.StatusCreated, out)
-}
+	path := fmt.Sprintf("tmp/%s", file.Filename)
+	c.SaveUploadedFile(file, path)
+	defer os.Remove(path)
 
-// writeJSON serializa la respuesta como JSON y escribe cabeceras.
-func writeJSON(w stdhttp.ResponseWriter, status int, v interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
-}
-
-// writeError escribe un objeto de error simple como JSON.
-func writeError(w stdhttp.ResponseWriter, status int, msg string) {
-	type errResp struct {
-		Error string `json:"error"`
+	if err := h.Service.ProcessAndSaveCSV(path, doID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-	writeJSON(w, status, errResp{Error: msg})
+	c.JSON(http.StatusOK, gin.H{"message": "Procesado", "items": h.Service.GetProcessedCount()})
+}
+
+func (h *OperacionHandler) HandleCargaFotos(c *gin.Context) {
+	doID, _ := strconv.Atoi(c.Param("do_id"))
+	form, _ := c.MultipartForm()
+	files := form.File["fotos"]
+
+	// Simulación de asociación (en producción vendría del form)
+	itemsIDs := []int{1}
+
+	count := 0
+	for _, f := range files {
+		path := fmt.Sprintf("uploads/%s_%s", c.Param("do_id"), f.Filename)
+		c.SaveUploadedFile(f, path)
+		if h.Service.SavePhotoMetadata(doID, path, itemsIDs) == nil {
+			count++
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"processed": count})
 }
