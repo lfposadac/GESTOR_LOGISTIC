@@ -3,6 +3,7 @@ package usecase
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 
@@ -11,10 +12,15 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const (
-	JwtSecretKey   = "CLAVE_SECRETA_INTEGRACOMEX_2025"
-	CodigoDuracion = 24 * time.Hour
-)
+const CodigoDuracion = 24 * time.Hour
+
+func getSecret() []byte {
+	s := os.Getenv("JWT_SECRET")
+	if s == "" {
+		return []byte("fallback_secret_local")
+	}
+	return []byte(s)
+}
 
 type Repository interface {
 	FindUserByEmail(email string) (domain.Usuario, error)
@@ -77,7 +83,7 @@ func (s *GestorService) AuthenticateWithOTP(email, otpCode string) (string, erro
 		"rol":   user.Rol,
 		"exp":   time.Now().Add(CodigoDuracion).Unix(),
 	})
-	return claims.SignedString([]byte(JwtSecretKey))
+	return claims.SignedString(getSecret())
 }
 
 // --- NEGOCIO ---
