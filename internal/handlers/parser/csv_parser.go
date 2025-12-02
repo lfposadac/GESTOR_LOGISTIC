@@ -2,103 +2,64 @@ package parser
 
 import (
 	"encoding/csv"
-	"errors"
-	"io"
-	"strings"
+	"gestor_logistic/internal/core/domain"
+	"os"
 )
 
-// CSVParser is a concrete implementation for parsing CSV input.
-// It is generic and returns every row as a map keyed by the header names.
-type CSVParser struct {
-	// Comma is the field delimiter. Default is ','.
-	Comma rune
-	// TrimLeadingSpace indicates if leading space in a field should be ignored.
-	TrimLeadingSpace bool
-	// Comment, if non-zero, is the comment character (lines beginning with it are ignored).
-	Comment rune
-}
+type CSVParser struct{}
 
-// NewCSVParser returns a CSVParser with sensible defaults.
 func NewCSVParser() *CSVParser {
-	return &CSVParser{
-		Comma:            ',',
-		TrimLeadingSpace: true,
-		Comment:          0,
-	}
+	return &CSVParser{}
 }
 
-// Parse reads CSV data from r and returns a slice of maps where each map represents a row.
-// The first non-empty row is used as header. Header fields are trimmed and used as keys.
-// If rows have fewer fields than the header they are padded with empty strings.
-// If rows have more fields than the header, the extra fields are joined with ',' into the last header field.
-func (p *CSVParser) Parse(r io.Reader) ([]map[string]string, error) {
-	if r == nil {
-		return nil, errors.New("nil reader")
-	}
-
-	cr := csv.NewReader(r)
-	cr.Comma = p.Comma
-	cr.TrimLeadingSpace = p.TrimLeadingSpace
-	if p.Comment != 0 {
-		cr.Comment = p.Comment
-	}
-
-	records, err := cr.ReadAll()
+func (p *CSVParser) Parse(filePath string) ([]domain.ItemCSV, error) {
+	f, err := os.Open(filePath)
 	if err != nil {
-		if err == io.EOF {
-			return nil, nil
-		}
 		return nil, err
 	}
-	if len(records) == 0 {
-		return nil, nil
+	defer f.Close()
+
+	reader := csv.NewReader(f)
+	reader.FieldsPerRecord = -1
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
 	}
 
-	// find first non-empty header row
-	var header []string
-	var startIdx int
-	for i, row := range records {
-		empty := true
-		for _, v := range row {
-			if strings.TrimSpace(v) != "" {
-				empty = false
-				break
-			}
-		}
-		if !empty {
-			header = row
-			startIdx = i + 1
-			break
-		}
-	}
-	if header == nil {
-		return nil, errors.New("no header row found")
-	}
-	for i := range header {
-		header[i] = strings.TrimSpace(header[i])
-	}
+	var items []domain.ItemCSV
 
-	out := make([]map[string]string, 0, len(records)-startIdx)
-	for _, row := range records[startIdx:] {
-		// normalize row length to header length
-		if len(row) < len(header) {
-			pad := make([]string, len(header)-len(row))
-			row = append(row, pad...)
-		} else if len(row) > len(header) {
-			// merge extras into last header field
-			last := strings.Join(row[len(header)-1:], ",")
-			newRow := make([]string, len(header))
-			copy(newRow, row[:len(header)-1])
-			newRow[len(header)-1] = last
-			row = newRow
+	// Asumimos fila 0 cabecera. Ajustar índices según el archivo real.
+	for i, r := range records {
+		if i == 0 || len(r) < 30 {
+			continue
 		}
 
-		m := make(map[string]string, len(header))
-		for i, h := range header {
-			m[h] = strings.TrimSpace(row[i])
-		}
-		out = append(out, m)
-	}
+		// ÍNDICES APROXIMADOS (Basados en archivo Plano Davivienda/Bancolombia standard)
+		// r[0]: Producto
+		// r[2]: Proveedor
+		// r[12]: Pais
+		// r[26]: Cantidad
+		// r[29]: Peso Neto/Bruto
+		// r[34]: Marca
+		// r[37]: Modelo
+		// r[38]: Referencia
+		// r[40]: Info Adicional
+		// r[41]: Serial
+		// r[45]: Descripción
 
-	return out, nil
+		items = append(items, domain.ItemCSV{
+			Producto:           r[0],
+			ProveedorNombre:    r[2],
+			Pais:               r[12],
+			CantDavStr:         r[26],
+			PesoStr:            r[29],
+			Marca:              r[34],
+			Modelo:             r[37],
+			Referencia:         r[38],
+			InfoComplementaria: r[40],
+			Serial:             r[41],
+			Descripcion:        r[45],
+		})
+	}
+	return items, nil
 }
