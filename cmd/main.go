@@ -10,7 +10,7 @@ import (
 	"gestor_logistic/internal/handlers/parser"
 	"gestor_logistic/internal/infrastructure/database"
 	"gestor_logistic/internal/infrastructure/web"
-	"gestor_logistic/internal/infrastructure/worker
+	"gestor_logistic/internal/infrastructure/worker"
 
 	"github.com/joho/godotenv" // Opcional: Para cargar variables de entorno desde .env
 )
@@ -44,7 +44,7 @@ func main() {
 	// ---------------------------------------------------------------------
 	// 3. Inyección de Dependencias (Clean Architecture)
 	// ---------------------------------------------------------------------
-	
+
 	// Capa de Infraestructura (Repositorio y Parser)
 	repo := database.NewPostgresRepository(db)
 	csvParser := parser.NewCSVParser()
@@ -60,7 +60,7 @@ func main() {
 	// ---------------------------------------------------------------------
 	// 4. Inicialización de Workers (Procesos en Segundo Plano)
 	// ---------------------------------------------------------------------
-	
+
 	// Worker de Alertas (Proceso 1): Revisa vencimientos de documentos cada hora
 	log.Println("⏰ Iniciando Worker de Alertas...")
 	go worker.StartAlerterWorker(repo, 1*time.Hour)
@@ -68,13 +68,13 @@ func main() {
 	// ---------------------------------------------------------------------
 	// 5. Configuración y Lanzamiento del Servidor Web
 	// ---------------------------------------------------------------------
-	
+
 	// Configurar Router y Rutas (incluyendo Login y Middleware)
 	router := web.SetupRouter(operacionHandler)
 
 	serverPort := getEnv("PORT", "8080")
 	log.Printf("🌐 Servidor Gestor Logístico iniciado en http://localhost:%s", serverPort)
-	
+
 	// Iniciar el servidor (Bloqueante)
 	if err := router.Run(":" + serverPort); err != nil {
 		log.Fatalf("❌ Error al iniciar el servidor: %v", err)
