@@ -1,0 +1,2 @@
+# Forzar saltos de línea LF (Linux/Mac) para todo, incluso en Windows
+* text=auto eol=lf
