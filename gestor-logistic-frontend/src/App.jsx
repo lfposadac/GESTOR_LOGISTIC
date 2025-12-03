@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-// IMPORTANTE: Logo a Color para el Header Blanco
-import logoColor from './assets/logo_color.png'; 
+import logoColor from './assets/logo_color.png'; // Logo color para Header blanco
 
 import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
@@ -28,14 +27,14 @@ function App() {
             case 'clientes': 
                 return (
                     <div className="container">
-                        <button className="btn-secondary" onClick={()=>setView('dashboard')} style={{marginBottom:15}}>← Volver al Panel</button>
-                        <MatriculaCliente onSuccess={(id)=>alert(`✅ Cliente creado con ID: ${id}`)} />
+                        <button className="btn-secondary" onClick={()=>setView('dashboard')} style={{marginBottom:15}}>← Volver</button>
+                        <MatriculaCliente onSuccess={(id)=>alert(`Cliente ${id} creado`)} />
                     </div>
                 );
             case 'operaciones':
                 return (
                     <div className="container">
-                        <button className="btn-secondary" onClick={()=>setView('dashboard')} style={{marginBottom:15}}>← Volver al Panel</button>
+                        <button className="btn-secondary" onClick={()=>setView('dashboard')} style={{marginBottom:15}}>← Volver</button>
                         <CargaMasiva currentDoId={doId || 1} />
                     </div>
                 );
@@ -45,23 +44,20 @@ function App() {
 
     return (
         <div style={{display:'flex', flexDirection:'column', minHeight:'100vh'}}>
-            {/* HEADER BLANCO con LOGO COLOR */}
             <header className="app-header">
                 <div className="header-left">
                     <img src={logoColor} alt="Integra Comex" className="header-logo" />
-                    <h1 style={{fontSize:'1.4rem', margin:0, fontWeight:'700'}}>Gestor Logístico</h1>
+                    <h1 style={{fontSize:'1.3rem', margin:0, fontWeight:600}}>Gestor Logístico</h1>
                 </div>
                 <div style={{display:'flex', alignItems:'center', gap:15}}>
-                    <span style={{fontSize:'0.9rem', color:'#555', fontWeight:'500'}}>Usuario Conectado</span>
-                    <button onClick={logout} className="logout-btn">Cerrar Sesión</button>
+                    <button onClick={logout} className="logout-btn">Salir</button>
                 </div>
             </header>
 
-            <main style={{flex:1, padding:'40px 0'}}>
+            <main style={{flex:1, padding:'30px 0'}}>
                 {renderBody()}
             </main>
 
-            {/* FOOTER NARANJA */}
             <Footer />
         </div>
     );
