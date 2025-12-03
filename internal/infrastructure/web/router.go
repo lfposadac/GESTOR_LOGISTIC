@@ -27,5 +27,12 @@ func SetupRouter(h *http.OperacionHandler) *gin.Engine {
 		api.POST("/do/:do_id/carga-csv", h.HandleCargaCSV)
 		api.POST("/do/:do_id/fotos", h.HandleCargaFotos)
 	}
+	clientes := api.Group("/clientes")
+	clientes.Use(http.AuthMiddleware())
+	{
+		clientes.POST("/matricula", h.HandleMatricular)
+		clientes.GET("", h.HandleListarClientes)            // NUEVA
+		clientes.GET("/:cliente_id/dos", h.HandleListarDOs) // NUEVA
+	}
 	return r
 }

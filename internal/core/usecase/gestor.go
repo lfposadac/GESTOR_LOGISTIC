@@ -31,6 +31,8 @@ type Repository interface {
 	CreateDO(do domain.DocumentoOperativo) (int, error)
 	SaveOperacion(op domain.Item) error
 	SaveFotoMetadata(foto domain.FotoItem) error
+	GetAllClientes() ([]domain.Cliente, error)
+	GetDOsByClienteID(id int) ([]domain.DocumentoOperativo, error)
 }
 
 type Parser interface {
@@ -142,4 +144,12 @@ func transformToDomain(raw domain.ItemCSV) domain.Item {
 		PaisOrigen:         raw.Pais,
 		Proveedor:          raw.ProveedorNombre,
 	}
+}
+
+func (s *GestorService) ListarClientes() ([]domain.Cliente, error) {
+	return s.Repo.GetAllClientes()
+}
+
+func (s *GestorService) ListarDOs(clienteID int) ([]domain.DocumentoOperativo, error) {
+	return s.Repo.GetDOsByClienteID(clienteID)
 }

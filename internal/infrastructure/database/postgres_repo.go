@@ -97,3 +97,41 @@ func (r *PostgresRepository) GetClientesPorVencer(d time.Time) ([]domain.Documen
 	return nil, nil
 }
 func (r *PostgresRepository) UpdateAlertaNotificada(docID uint64) error { return nil }
+
+// --- CONSULTAS (READ) ---
+
+func (r *PostgresRepository) GetAllClientes() ([]domain.Cliente, error) {
+	rows, err := r.DB.Query("SELECT id, nit, nombre_legal, representante_legal FROM clientes ORDER BY id DESC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var clientes []domain.Cliente
+	for rows.Next() {
+		var c domain.Cliente
+		if err := rows.Scan(&c.ID, &c.Nit, &c.NombreLegal, &c.RepresentanteLegal); err != nil {
+			return nil, err
+		}
+		clientes = append(clientes, c)
+	}
+	return clientes, nil
+}
+
+func (r *PostgresRepository) GetDOsByClienteID(clienteID int) ([]domain.DocumentoOperativo, error) {
+	rows, err := r.DB.Query("SELECT id, codigo_do, estado, fecha_creacion FROM documentos_operativos WHERE cliente_id = $1 ORDER BY id DESC", clienteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var dos []domain.DocumentoOperativo
+	for rows.Next() {
+		var d domain.DocumentoOperativo
+		if err := rows.Scan(&d.ID, &d.CodigoDO, &d.Estado, &d.FechaCreacion); err != nil {
+			return nil, err
+		}
+		dos = append(dos, d)
+	}
+	return dos, nil
+}

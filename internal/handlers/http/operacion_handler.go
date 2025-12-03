@@ -136,3 +136,23 @@ func (h *OperacionHandler) HandleCargaFotos(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"processed": count})
 }
+
+func (h *OperacionHandler) HandleListarClientes(c *gin.Context) {
+	lista, err := h.Service.ListarClientes()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, lista)
+}
+
+func (h *OperacionHandler) HandleListarDOs(c *gin.Context) {
+	idStr := c.Param("cliente_id")
+	id, _ := strconv.Atoi(idStr)
+	lista, err := h.Service.ListarDOs(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, lista)
+}
