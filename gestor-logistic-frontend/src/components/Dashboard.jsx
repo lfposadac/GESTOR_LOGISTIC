@@ -1,85 +1,48 @@
-// src/components/Dashboard.jsx
 import React from 'react';
 
 export const Dashboard = ({ onViewChange }) => {
-    
     const cardStyle = {
-        backgroundColor: 'var(--white)',
-        padding: '30px',
-        borderRadius: '12px',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.05)',
+        padding: '40px', 
+        borderRadius: '12px', 
         textAlign: 'center',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.05)', 
         cursor: 'pointer',
-        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-        borderTop: '5px solid var(--primary-blue)'
+        backgroundColor: 'white', 
+        borderTop: '6px solid var(--primary-blue)',
+        transition: 'transform 0.2s, box-shadow 0.2s'
     };
 
-    const cardHoverStyle = e => {
+    const handleHover = (e) => {
         e.currentTarget.style.transform = 'translateY(-5px)';
-        e.currentTarget.style.boxShadow = '0 12px 25px rgba(0,0,0,0.1)';
-        e.currentTarget.style.borderTopColor = 'var(--accent-orange)';
+        e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
     };
-
-    const cardLeaveStyle = e => {
+    const handleLeave = (e) => {
         e.currentTarget.style.transform = 'translateY(0)';
         e.currentTarget.style.boxShadow = '0 4px 15px rgba(0,0,0,0.05)';
-        e.currentTarget.style.borderTopColor = 'var(--primary-blue)';
     };
 
     return (
         <div className="container">
-            <h2 style={{textAlign: 'center', marginBottom: '40px', fontSize: '2rem'}}>
-                Bienvenido al Gestor Logístico
+            <h2 style={{textAlign:'center', margin:'20px 0 40px 0', color:'var(--primary-blue)', fontSize:'2rem'}}>
+                Panel de Control
             </h2>
             
-            <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-                gap: '30px',
-                padding: '20px'
-            }}>
-                
-                {/* Botón Proceso 1: Clientes */}
-                <div 
-                    style={cardStyle}
-                    onMouseEnter={cardHoverStyle}
-                    onMouseLeave={cardLeaveStyle}
-                    onClick={() => onViewChange('clientes')}
-                >
-                    <div style={{ fontSize: '50px', color: 'var(--primary-blue)', marginBottom: '20px' }}>
-                        👥
-                    </div>
-                    <h3>Gestión de Clientes</h3>
-                    <p>Matrícula de empresas y carga de documentos soporte (RUT, Cámara de Comercio).</p>
-                    <button className="btn-secondary" style={{marginTop: '20px'}}>Acceder</button>
+            <div className="dashboard-grid">
+                {/* Módulo Clientes */}
+                <div style={cardStyle} onClick={() => onViewChange('clientes')} onMouseEnter={handleHover} onMouseLeave={handleLeave}>
+                    <div style={{fontSize:'50px', marginBottom:20}}>👥</div>
+                    <h3 style={{color:'var(--primary-blue)', margin:0}}>Gestión de Clientes</h3>
+                    <p style={{color:'#666', marginTop:10}}>Matrícula, RUT y Documentos.</p>
+                    <button className="btn-secondary" style={{width:'100%', marginTop:20}}>Ingresar</button>
                 </div>
 
-                {/* Botón Proceso 2: Operaciones DO */}
-                <div 
-                    style={cardStyle}
-                    onMouseEnter={cardHoverStyle}
-                    onMouseLeave={cardLeaveStyle}
-                    onClick={() => onViewChange('operaciones')}
-                >
-                     <div style={{ fontSize: '50px', color: 'var(--primary-blue)', marginBottom: '20px' }}>
-                        📦
-                    </div>
-                    <h3>Operaciones (DO)</h3>
-                    <p>Gestión de Documentos Operativos, carga masiva de ítems (CSV) y fotos.</p>
-                    <button className="btn-secondary" style={{marginTop: '20px'}}>Acceder</button>
+                {/* Módulo Operaciones */}
+                <div style={cardStyle} onClick={() => onViewChange('operaciones')} onMouseEnter={handleHover} onMouseLeave={handleLeave}>
+                    <div style={{fontSize:'50px', marginBottom:20}}>📦</div>
+                    <h3 style={{color:'var(--primary-blue)', margin:0}}>Operaciones (DO)</h3>
+                    <p style={{color:'#666', marginTop:10}}>Carga Masiva y Fotos.</p>
+                    <button className="btn-secondary" style={{width:'100%', marginTop:20}}>Ingresar</button>
                 </div>
-
-                 {/* Botón Futuro: Reportes */}
-                 <div 
-                    style={{...cardStyle, opacity: 0.6, cursor: 'not-allowed'}}
-                >
-                     <div style={{ fontSize: '50px', color: 'gray', marginBottom: '20px' }}>
-                        📊
-                    </div>
-                    <h3 style={{color: 'gray'}}>Reportes y PDF</h3>
-                    <p>Generación de documentos finales y reportes gerenciales (Próximamente).</p>
-                </div>
-
             </div>
         </div>
     );
