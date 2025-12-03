@@ -1,92 +1,68 @@
-// src/App.jsx
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import logo from './assets/logo_integra.png'; // Para el header
+// IMPORTANTE: Logo a Color para el Header Blanco
+import logoColor from './assets/logo_color.png'; 
+
 import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
 import { MatriculaCliente } from './components/MatriculaCliente';
 import { CargaMasiva } from './components/CargaMasiva';
+import { Footer } from './components/Footer';
 import { apiService } from './services/api';
 
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-    // Estados de navegación: 'dashboard', 'clientes', 'operaciones'
-    const [currentView, setCurrentView] = useState('dashboard');
-    // Estado global para manejar el DO actual si se selecciona un cliente
-    const [currentDoId, setCurrentDoId] = useState(null);
+    const [view, setView] = useState('dashboard');
+    const [doId, setDoId] = useState(null);
 
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) setIsLoggedIn(true);
-    }, []);
+    useEffect(() => { if(localStorage.getItem('token')) setIsLoggedIn(true); }, []);
 
-    const handleLogout = () => {
-        apiService.logout();
-        setIsLoggedIn(false);
-        setCurrentView('dashboard');
-    };
+    const logout = () => { apiService.logout(); setIsLoggedIn(false); setView('dashboard'); };
+    const loginSuccess = () => { setIsLoggedIn(true); setView('dashboard'); };
 
-    const handleLoginSuccess = () => {
-        setIsLoggedIn(true);
-        setCurrentView('dashboard');
-    };
+    if (!isLoggedIn) return <Login onLoginSuccess={loginSuccess} />;
 
-    // Si no está logueado, mostrar Login (ocupa toda la pantalla)
-    if (!isLoggedIn) {
-        return <Login onLoginSuccess={handleLoginSuccess} />;
-    }
-
-    // Renderizar el contenido principal basado en la vista actual
-    const renderView = () => {
-        switch (currentView) {
-            case 'dashboard':
-                return <Dashboard onViewChange={setCurrentView} />;
-            case 'clientes':
+    const renderBody = () => {
+        switch(view) {
+            case 'dashboard': return <Dashboard onViewChange={setView} />;
+            case 'clientes': 
                 return (
                     <div className="container">
-                        <div style={{marginBottom: '20px'}}>
-                             <button className="btn-secondary" onClick={() => setCurrentView('dashboard')}>← Volver al Dashboard</button>
-                        </div>
-                        <MatriculaCliente onMatriculaSuccess={(id) => alert(`Cliente ${id} creado. Ahora puede crear un DO.`)} />
+                        <button className="btn-secondary" onClick={()=>setView('dashboard')} style={{marginBottom:15}}>← Volver al Panel</button>
+                        <MatriculaCliente onSuccess={(id)=>alert(`✅ Cliente creado con ID: ${id}`)} />
                     </div>
                 );
             case 'operaciones':
                 return (
                     <div className="container">
-                        <div style={{marginBottom: '20px'}}>
-                             <button className="btn-secondary" onClick={() => setCurrentView('dashboard')}>← Volver al Dashboard</button>
-                        </div>
-                        {/* Aquí pasamos un DO ID de ejemplo. En un futuro, esto vendría de seleccionar un DO de una lista */}
-                        <CargaMasiva currentDoId={currentDoId || 1} />
+                        <button className="btn-secondary" onClick={()=>setView('dashboard')} style={{marginBottom:15}}>← Volver al Panel</button>
+                        <CargaMasiva currentDoId={doId || 1} />
                     </div>
                 );
-            default:
-                return <Dashboard onViewChange={setCurrentView} />;
+            default: return <Dashboard onViewChange={setView} />;
         }
     };
 
-    // Layout principal cuando está logueado (Header + Contenido)
     return (
-        <div>
-            {/* Header Global */}
+        <div style={{display:'flex', flexDirection:'column', minHeight:'100vh'}}>
+            {/* HEADER BLANCO con LOGO COLOR */}
             <header className="app-header">
-                <div style={{display: 'flex', alignItems: 'center'}}>
-                    {/* Usamos el logo en blanco usando filtro CSS definido en App.css */}
-                    <img src={logo} alt="Integra Comex" className="header-logo" style={{marginRight: '15px'}} />
-                    <h1 style={{color: 'var(--white)', margin: 0, fontSize: '1.5rem'}}>Gestor Logístico</h1>
+                <div className="header-left">
+                    <img src={logoColor} alt="Integra Comex" className="header-logo" />
+                    <h1 style={{fontSize:'1.4rem', margin:0, fontWeight:'700'}}>Gestor Logístico</h1>
                 </div>
-                <div style={{display:'flex', alignItems:'center', gap:'20px'}}>
-                    <span>Usuario Conectado</span>
-                    <button onClick={handleLogout} className="logout-btn">
-                        Cerrar Sesión
-                    </button>
+                <div style={{display:'flex', alignItems:'center', gap:15}}>
+                    <span style={{fontSize:'0.9rem', color:'#555', fontWeight:'500'}}>Usuario Conectado</span>
+                    <button onClick={logout} className="logout-btn">Cerrar Sesión</button>
                 </div>
             </header>
 
-            {/* Contenido Dinámico */}
-            <main style={{ padding: '30px 0' }}>
-                {renderView()}
+            <main style={{flex:1, padding:'40px 0'}}>
+                {renderBody()}
             </main>
+
+            {/* FOOTER NARANJA */}
+            <Footer />
         </div>
     );
 }
