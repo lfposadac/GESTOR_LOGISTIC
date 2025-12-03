@@ -67,7 +67,11 @@ func AuthMiddleware() gin.HandlerFunc {
 		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
 		token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
-			return []byte(usecase.JwtSecretKey), nil
+			secret := os.Getenv("JWT_SECRET")
+			if secret == "" {
+				secret = "fallback_secret_local"
+			}
+			return []byte(secret), nil
 		})
 
 		if err != nil || !token.Valid {
