@@ -1,204 +1,183 @@
 :root {
-  --primary-blue: #002B5C;      /* Azul Corporativo */
-  --accent-orange: #F58220;     /* Naranja Acción */
+  --primary-blue: #002B5C;
+  --accent-orange: #F58220;
   --accent-orange-hover: #d96e11;
-  --bg-light: #F4F7F6;          /* Fondo Pantalla */
-  --white: #FFFFFF;             /* Blanco Puro */
-  --text-dark: #333333;         /* Texto General */
-  --shadow-soft: 0 4px 15px rgba(0,0,0,0.05);
+  --bg-light: #F4F7F6;
+  --white: #FFFFFF;
+  --text-dark: #333333;
+  --radius-card: 30px;
+  --radius-input: 20px;
+  --radius-btn: 50px;
 }
 
-body {
+/* ======================================================
+   1. RESET "NUCLEAR" (CLAVE PARA EL CENTRADO)
+   ====================================================== */
+* {
+  box-sizing: border-box; /* Manejo correcto de bordes/padding */
+}
+
+html, body {
   margin: 0;
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--bg-light);
-  color: var(--text-dark);
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* =========================================
-   1. LAYOUT & RESPONSIVIDAD (GRID SYSTEM)
-   ========================================= */
-
-/* Contenedor Principal */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  padding: 0;
   width: 100%;
-  box-sizing: border-box; /* Evita que el padding rompa el ancho */
+  height: 100%; /* OBLIGATORIO para centrar verticalmente */
+  background-color: var(--bg-light);
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden; /* Evita scroll horizontal en móviles */
 }
 
-/* Grid para el Dashboard (Tarjetas)
-   Se ajusta automáticamente: 3 en PC, 2 en Tablet, 1 en Celular */
+/* IMPORTANTE: En React, tu App vive dentro de un div con id="root".
+   Si no le damos altura a este div, el centrado no funciona. */
+#root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ======================================================
+   2. CONTENEDOR LOGIN (CENTRADO ABSOLUTO)
+   ====================================================== */
+.login-container {
+  /* Ocupar todo el espacio disponible */
+  width: 100vw;       /* 100% del ancho de la ventana */
+  min-height: 100vh;  /* 100% de la altura de la ventana */
+  
+  /* Flexbox para centrar el contenido hijo (la tarjeta) */
+  display: flex;
+  justify-content: center; /* Centrado Horizontal */
+  align-items: center;     /* Centrado Vertical */
+  
+  background-color: var(--bg-light);
+  padding: 20px; /* Margen de seguridad para celulares */
+}
+
+/* Tarjeta del Login */
+.login-card {
+  background-color: var(--white);
+  padding: 40px;
+  border-radius: var(--radius-card);
+  box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px; /* Ancho máximo elegante en PC */
+  text-align: center;
+  
+  /* Animación suave */
+  animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ======================================================
+   3. LAYOUT APP (HEADER + CONTENIDO + FOOTER)
+   ====================================================== */
+/* Cuando NO estamos en login, usamos esta estructura */
+
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Ocupa al menos toda la pantalla */
+}
+
+.app-main {
+  flex: 1; /* Empuja el footer hacia abajo */
+  padding: 30px 0;
+  width: 100%;
+  display: flex;
+  justify-content: center; /* Centra el contenido interior */
+}
+
+/* ======================================================
+   4. COMPONENTES GENERALES
+   ====================================================== */
+.container { width: 90%; max-width: 1200px; }
+
+.app-header {
+  background-color: var(--white);
+  padding: 15px 5%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+  position: sticky; top: 0; z-index: 100;
+}
+.header-left { display: flex; align-items: center; gap: 15px; }
+.header-logo { height: 45px; width: auto; object-fit: contain; }
+
+.app-footer {
+  background-color: var(--accent-orange);
+  color: var(--white);
+  padding: 20px;
+  text-align: center;
+  border-top-left-radius: 30px;
+  border-top-right-radius: 30px;
+}
+
+/* Inputs y Botones */
+.form-input {
+  width: 100%; padding: 15px 20px; margin-bottom: 20px;
+  border: 1px solid #e0e0e0; border-radius: var(--radius-input);
+  font-size: 1rem; outline: none; transition: 0.3s;
+}
+.form-input:focus { border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(0,43,92,0.1); }
+
+.btn-primary {
+  width: 100%; padding: 14px; background-color: var(--accent-orange); color: white;
+  border: none; border-radius: var(--radius-btn); font-weight: bold; cursor: pointer;
+  box-shadow: 0 5px 15px rgba(245,130,32,0.3); transition: 0.2s;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(245,130,32,0.4); }
+
+.logout-btn {
+  background: transparent; color: var(--primary-blue); border: 2px solid var(--primary-blue);
+  padding: 8px 20px; border-radius: var(--radius-btn); font-weight: bold; cursor: pointer;
+}
+
+/* Responsive Grids */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 30px;
-  padding: 20px 0;
-}
-
-/* Grid para Formularios (Inputs)
-   2 columnas en PC, 1 en celular */
-.form-grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-/* =========================================
-   2. HEADER (FONDO BLANCO)
-   ========================================= */
-.app-header {
-  background-color: var(--white);
-  color: var(--primary-blue);
-  padding: 15px 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-  position: sticky;
-  top: 0;
-  z-index: 1000; /* Siempre encima */
-}
-
-.header-left { display: flex; align-items: center; gap: 15px; }
-.header-logo { height: 50px; width: auto; object-fit: contain; }
-
-.logout-btn {
-  background: transparent;
-  color: var(--primary-blue);
-  border: 2px solid var(--primary-blue);
-  padding: 8px 18px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap; /* Evita que el texto se parta */
-}
-.logout-btn:hover {
-  background-color: var(--primary-blue);
-  color: var(--white);
-}
-
-/* =========================================
-   3. FOOTER (FONDO NARANJA)
-   ========================================= */
-.app-footer {
-  background-color: var(--accent-orange);
-  color: var(--white);
-  padding: 25px;
-  margin-top: auto; /* Empuja el footer al final */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
-  text-align: center;
-}
-
-/* =========================================
-   4. LOGIN & TARJETAS
-   ========================================= */
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 20px;
-  background-color: var(--bg-light);
-}
-
-.login-card {
-  background-color: var(--white);
-  padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
   width: 100%;
-  max-width: 420px;
-  text-align: center;
+}
+.form-grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+
+/* Media Queries */
+@media (max-width: 480px) {
+  .app-header { flex-direction: column; gap: 15px; text-align: center; }
+  .header-left { flex-direction: column; }
+  .login-card { padding: 30px 20px; }
+  .dashboard-grid, .form-grid-2 { grid-template-columns: 1fr; }
 }
 
-.card {
-  background-color: var(--white);
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: var(--shadow-soft);
-  border: 1px solid #eee;
-  margin-bottom: 20px;
+@media (min-width: 1600px) {
+  html { font-size: 20px; }
+  .container { max-width: 1600px; }
+}
+/* src/App.css - Ajuste de visibilidad */
+
+/* Forzamos estilos específicos para el contenido de las tarjetas */
+.card h3 {
+  color: var(--primary-blue);
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.5rem;
 }
 
-/* =========================================
-   5. ELEMENTOS DE FORMULARIO
-   ========================================= */
-.form-input {
-  width: 100%;
-  padding: 12px;
+.card p {
+  color: #555555; /* Gris oscuro para que se lea bien sobre blanco */
+  font-size: 1rem;
+  margin: 0;
+  opacity: 1; /* Asegura que no sea transparente */
+}
+
+/* Aseguramos que el ícono (emoji) tenga tamaño correcto */
+.card div:first-child {
+  font-size: 3.5rem; /* Tamaño del icono */
   margin-bottom: 15px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  box-sizing: border-box;
-  font-size: 16px; /* 16px evita zoom en iPhone */
-}
-
-/* Botones */
-.btn-primary {
-  background-color: var(--accent-orange);
-  color: var(--white);
-  border: none;
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: bold;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  width: 100%;
-}
-.btn-primary:hover { background-color: var(--accent-orange-hover); }
-.btn-primary:disabled { background-color: #ccc; cursor: not-allowed; }
-
-.btn-secondary {
-  background-color: transparent;
-  color: var(--primary-blue);
-  border: 2px solid var(--primary-blue);
-  padding: 10px 20px;
-  font-size: 14px;
-  font-weight: bold;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-.btn-secondary:hover { background-color: var(--primary-blue); color: var(--white); }
-
-/* =========================================
-   📱 MEDIA QUERIES (MÓVILES Y TABLETS)
-   ========================================= */
-@media (max-width: 768px) {
-  
-  /* 1. Header Vertical */
-  .app-header {
-    flex-direction: column;
-    gap: 15px;
-    padding: 15px;
-  }
-  
-  .header-left {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  /* 2. Formularios a 1 sola columna */
-  .form-grid-2 {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  /* 3. Ajustes de Texto */
-  h1 { font-size: 1.4rem; }
-  h2 { font-size: 1.2rem; }
-  
-  /* 4. Dashboard */
-  .container { padding: 15px; }
-  .card { padding: 20px; }
 }
