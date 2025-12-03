@@ -25,5 +25,16 @@ export const apiService = {
         const fd = new FormData(); 
         for(let i=0; i<files.length; i++) fd.append('fotos', files[i]);
         return (await api.post(`/do/${doId}/fotos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
+    },
+    // NUEVO: Obtener lista de clientes
+    getClientes: async () => {
+        const response = await api.get('/clientes');
+        return response.data;
+    },
+
+    // NUEVO: Obtener DOs de un cliente
+    getDOsPorCliente: async (clienteId) => {
+        const response = await api.get(`/clientes/${clienteId}/dos`);
+        return response.data;
     }
 };

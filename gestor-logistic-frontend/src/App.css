@@ -181,3 +181,41 @@ html, body {
   font-size: 3.5rem; /* Tamaño del icono */
   margin-bottom: 15px;
 }
+
+/* TABLAS RESPONSIVE & ROUNDED */
+.table-container {
+  overflow-x: auto; /* Scroll horizontal en celular */
+  border-radius: 12px;
+  border: 1px solid #eee;
+}
+
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px; /* Fuerza ancho mínimo para que no se rompa */
+}
+
+.custom-table th, .custom-table td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.custom-table th {
+  background-color: var(--primary-blue);
+  color: var(--white);
+  font-weight: 600;
+}
+
+.custom-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+/* Botón pequeño para acciones en tabla */
+.btn-sm {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  width: auto;
+  display: inline-block;
+  margin-right: 5px;
+}
